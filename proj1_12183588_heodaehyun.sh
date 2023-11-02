@@ -1,6 +1,6 @@
-#!/bin/bash
+#! /bin/bash
 fin="N"
-until [ $fin="Y" ]
+until [ $fin = "Y" ]
 do
     echo "---------------------------------------------"
     echo "User Name : $(whoami)"
