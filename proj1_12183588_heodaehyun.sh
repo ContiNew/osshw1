@@ -38,6 +38,19 @@ do
             ;;
         esac 
         ;;
+    3)
+        read -p "Please Enter 'movie id' (1~1682): " movieid
+        ratings=$(awk -v movid="${movieid}" '$2==movid {print $3}' <$2) #awk를 이용해 movieid 에 해당되는 모든 평가를 들고옴
+        count=$(echo "$ratings" | wc -l) # wc -ㅣ을 이용해서 카운트 
+        sum=0
+        ratings=$(echo "$ratings" | tr '\n' ' ')
+        for i in ${ratings}
+        do 
+            sum=$(( sum+=i ))
+        done 
+        res=$(echo "${sum} ${count}" |awk '{printf("%.5f", $1 / $2)}')
+        echo "average rating of ${movieid}: ${res}"
+        ;;
     9) 
         echo "Bye!"
         fin="Y"
