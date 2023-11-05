@@ -46,16 +46,29 @@ getMonth(){
     esac 
     echo $val
 }
+
+roundUp(){
+    res=$1;
+    precision=4;
+    last_char="${res: -1}"
+    while [ "${last_char}" == '0' ] ;
+    do
+        res=$(awk -v num="${res}" -v precision="${precision}" 'BEGIN { rounded = int(num * 10^precision) / 10^precision; print rounded }')
+        precision=$((precision--))
+        last_char="${res: -1}"
+    done
+    echo "${res}"
+}
 #main
 
 fin="N"
 echo "---------------------------------------------"
 echo "User Name : $(whoami)"
 echo "Student Number : 12183588, Heo DaeHyun"
-echo "[Menu]"
+echo "[ Menu ]"
 echo "1. Get the data of the movie identified by a specific 'movie id' from 'u.item'"
 echo "2. Get the data of action genre movies from 'u.item'"
-echo "3. Get the average 'rating’ of the movie identified by specific 'movie id' from 'u.data’"
+echo "3. Get the average 'rating’ of the movie identified by specific 'movie id' from 'u.data'"
 echo "4. Delete the ‘IMDb URL’ from ‘u.item"
 echo "5. Get the data about users from 'u.user"
 echo "6. Modify the format of 'release date' in 'u.item"
@@ -65,14 +78,14 @@ echo "9. Exit"
 echo "---------------------------------------------"
 until [ $fin = "Y" ]
 do
-    read -p "Enter Your Choice [1-9]: " choice
+    read -p "Enter your choice [ 1-9 ] " choice
     case $choice in
     1)
-        read -p "Please Enter 'movie id' (1~1682): " movieid
+        read -p "Please enter 'movie id'(1~1682): " movieid
         cat $1 | tr ' ' '_' | tr '|' ' ' | awk -v movieid="$movieid" '$1==movieid{print $0}'| tr ' ' '|' | tr '_' ' '
         ;;
     2) 
-        read -p "Do you want to get the data of \"action\" gerne movies from 'u.item'? (Y/N): " select
+        read -p "Do you want to get the data of \"action\" gerne movies from 'u.item'? (y/n): " select
         case $select in
         Y|y|yes|Yes|YES)
             cat $1 | tr ' ' '_' |tr '|' ' '| awk '$7==1 {print $1, $2}' | tr '_' ' ' 
@@ -87,7 +100,7 @@ do
         esac 
         ;;
     3)
-        read -p "Please Enter 'movie id' (1~1682): " movieid
+        read -p "Please enter the 'movie id'(1~1682): " movieid
         ratings=$(awk -v movid="${movieid}" '$2==movid {print $3}' <$2) #awk를 이용해 movieid 에 해당되는 모든 평가를 들고옴
         count=$(echo "$ratings" | wc -l) # wc -ㅣ을 이용해서 카운트 
         sum=0
@@ -97,10 +110,11 @@ do
             sum=$(( sum+=i ))
         done 
         res=$(echo "${sum} ${count}" |awk '{printf("%.5f", $1 / $2)}') # bash 쉘 내장 기능으로는 소수점 연산이 안됨
+        res=$(roundUp "${res}") # 5 이하의 값에 대해서는 소수점 끝자리에 0이 올 수 있으므로 조정한다.
         echo "average rating of ${movieid}: ${res}"
         ;;
     4)
-        read -p "Do you want to delete the ‘IMDb URL’ from ‘u.item’? (Y/N):" select
+        read -p "Do you want to delete the ‘IMDb URL’ from ‘u.item’?(y/n):" select
         case $select in
         Y|y|yes|Yes|YES)
             head -10 $1| tr ' ' '_' | tr '|' ' ' | awk '{$4=" "}1' | tr ' ' '|'| tr '_' ' ' | cat 
@@ -116,7 +130,7 @@ do
         esac 
         ;;
     5)
-        read -p "Do you want to get the data about users from ‘u.user’? (Y/N): " select
+        read -p "Do you want to get the data about users from ‘u.user’?(y/n): " select
         case $select in
         Y|y|yes|Yes|YES)
             users=$(head -10 $3|tr '\n' ' ') # for 문을 사용할 수 있도록 개행을 공백으로 대체
@@ -144,7 +158,7 @@ do
         esac 
         ;;
     6)
-        read -p "Do you want to Modify the format of ‘release data’ in ‘u.item’(Y/N)?" select
+        read -p "Do you want to Modify the format of ‘release data’ in ‘u.item’(y/n)?" select
         case $select in
         Y|y|yes|Yes|YES)
             sources=$(tail -10 $1|tr ' ' '_'| tr '\n' ' ')
@@ -174,13 +188,14 @@ do
         echo $data_with_uid | tr ' ' '|' # 공백을 |로 바꾸어서 출력한다.
         movieid_list=$(echo $data_with_uid | tr ' ' '\n' | head -10 | tr '\n' ' ') # head를 이용해 상위 10개의 movieid를 리스트로 만든다
         echo
+        items=$(cat $1 | tr ' ' '_' | tr '|' ' ') 
         for movieid in $movieid_list
         do
-          cat $1 | tr ' ' '_' | tr '|' ' ' | awk -v movieid="$movieid" '$1==movieid{print $1,$2}' | tr ' ' '|' | tr '_' ' '
+           echo -e "${items}"| awk -v movieid="$movieid" '$1==movieid{print $1,$2}' | tr ' ' '|' | tr '_' ' '
         done
         ;;
     8)
-        read -p "Do you want to get the average 'rating' of movies rated by users with 'age' between 20 and 29 and 'occupation' as 'programmer'?(Y/N)" select
+        read -p "Do you want to get the average 'rating' of movies rated by users with 'age' between 20 and 29 and 'occupation' as 'programmer'?(y/n)" select
         case $select in
         Y|y|yes|Yes|YES)
             users=$(cat $3| tr '|' ' ' | awk '$2<=29 && $2>=20 && $4=="programmer"{print $1}'| tr '\n' ' ')
@@ -200,6 +215,7 @@ do
                 done
                 if [ $count != 0 ]; then
                     avg=$(echo "${sum} ${count}" |awk '{printf("%.5f", $1 / $2)}') # movieid에 대해 평균레이팅을 구함
+                    avg=$(roundUp "${avg}")
                     echo "${movieid}" "${avg}"  # 구한 값을 출력
                 fi
             done
