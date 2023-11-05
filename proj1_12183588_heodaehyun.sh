@@ -69,37 +69,48 @@ echo "[ Menu ]"
 echo "1. Get the data of the movie identified by a specific 'movie id' from 'u.item'"
 echo "2. Get the data of action genre movies from 'u.item'"
 echo "3. Get the average 'rating’ of the movie identified by specific 'movie id' from 'u.data'"
-echo "4. Delete the ‘IMDb URL’ from ‘u.item"
-echo "5. Get the data about users from 'u.user"
-echo "6. Modify the format of 'release date' in 'u.item"
+echo "4. Delete the ‘IMDb URL’ from ‘u.item'"
+echo "5. Get the data about users from 'u.user'"
+echo "6. Modify the format of 'release date' in 'u.item'"
 echo "7. Get the data of movies rated by a specific 'user id' from 'u.data'"
 echo "8. Get the average 'rating' of movies rated by users with 'age' between 20 and 29 and 'occupation' as 'programmer'"
 echo "9. Exit"
 echo "---------------------------------------------"
-until [ $fin = "Y" ]
+until [ $fin == "Y" ]
 do
     read -p "Enter your choice [ 1-9 ] " choice
     case $choice in
     1)
+        echo ""
         read -p "Please enter 'movie id'(1~1682): " movieid
+        echo ""
         cat $1 | tr ' ' '_' | tr '|' ' ' | awk -v movieid="$movieid" '$1==movieid{print $0}'| tr ' ' '|' | tr '_' ' '
+        echo ""
         ;;
     2) 
+        echo ""
         read -p "Do you want to get the data of \"action\" gerne movies from 'u.item'? (y/n): " select
         case $select in
         Y|y|yes|Yes|YES)
-            cat $1 | tr ' ' '_' |tr '|' ' '| awk '$7==1 {print $1, $2}' | tr '_' ' ' 
-            #액션 영화는 tr로 전치를 했을 떄, 7번째 열이다.
+            echo ""
+            cat $1 | tr ' ' '_' |tr '|' ' '| awk '$6==1 {print $1, $2}' | tr '_' ' ' |head -10
+            echo ""
+            #액션 영화는 tr로 전치를 했을 떄, 6번째 열이다.
             ;;
         N|n|no|No|NO)
+            echo ""
             echo "back to the menu"
+            echo ""
             ;;
         *) 
+            echo ""
             echo "invalid selection"
+            echo ""
             ;;
         esac 
         ;;
     3)
+        echo ""
         read -p "Please enter the 'movie id'(1~1682): " movieid
         ratings=$(awk -v movid="${movieid}" '$2==movid {print $3}' <$2) #awk를 이용해 movieid 에 해당되는 모든 평가를 들고옴
         count=$(echo "$ratings" | wc -l) # wc -ㅣ을 이용해서 카운트 
@@ -111,13 +122,18 @@ do
         done 
         res=$(echo "${sum} ${count}" |awk '{printf("%.5f", $1 / $2)}') # bash 쉘 내장 기능으로는 소수점 연산이 안됨
         res=$(roundUp "${res}") # 5 이하의 값에 대해서는 소수점 끝자리에 0이 올 수 있으므로 조정한다.
+        echo ""
         echo "average rating of ${movieid}: ${res}"
+        echo ""
         ;;
     4)
+        echo ""
         read -p "Do you want to delete the ‘IMDb URL’ from ‘u.item’?(y/n):" select
         case $select in
         Y|y|yes|Yes|YES)
+            echo ""
             head -10 $1| tr ' ' '_' | tr '|' ' ' | awk '{$4=" "}1' | tr ' ' '|'| tr '_' ' ' | cat 
+            echo ""
             # head를 통해서 10줄만을 불러오고 이를 파이프를 이용해 tr로 넘겨서 awk를 활용할 수 있도록 바꾸고, 
             # 전치가 완료되면 이를 다시 역으로 tr 해서 원래 포맷으로 되돌린 뒤 cat 하여 출력한다. 
             ;;
@@ -130,10 +146,12 @@ do
         esac 
         ;;
     5)
+        echo ""
         read -p "Do you want to get the data about users from ‘u.user’?(y/n): " select
         case $select in
         Y|y|yes|Yes|YES)
             users=$(head -10 $3|tr '\n' ' ') # for 문을 사용할 수 있도록 개행을 공백으로 대체
+            echo ""
             for user in ${users}
             do 
                 info=$(echo $user| tr '|' ' ') # awk를 쓸 수 있도록 형태 변경
@@ -148,6 +166,7 @@ do
                 occupation=$(echo $info| awk '{print $4}')
                 echo "user "$userid" is "$age" years old "$gender" "$occupation""
             done
+            echo ""
             ;;
         N|n|no|No|NO)
             echo "back to the menu"
@@ -158,9 +177,11 @@ do
         esac 
         ;;
     6)
+        echo ""
         read -p "Do you want to Modify the format of ‘release data’ in ‘u.item’(y/n)?" select
         case $select in
         Y|y|yes|Yes|YES)
+            echo ""
             sources=$(tail -10 $1|tr ' ' '_'| tr '\n' ' ')
             for line in ${sources}
             do
@@ -172,6 +193,7 @@ do
                 date="$year$month$day"
                 echo $line |tr '|' ' ' | awk -v date="$date" '{$3=date}1' | tr ' ' '|'|tr '_' ' '
             done
+            echo ""
             ;;
         N|n|no|No|NO)
             echo "back to the menu"
@@ -182,19 +204,23 @@ do
         esac 
         ;;
     7)
-        read -p "Please Enter ‘user id’(1~943): " userid
+        echo ""
+        read -p "Please Enter the ‘user id’(1~943): " userid
+        echo ""
         data_with_uid=$(awk -v uid="$userid" '$1==uid{print $2}' < $2 | sort -g | tr '\n' ' ') 
         #uid와 일치하는 movieid들을 찾는다. 그후, sort 함수를 통해서 정렬하고, 개행을 공백으로 변경한다.
         echo $data_with_uid | tr ' ' '|' # 공백을 |로 바꾸어서 출력한다.
         movieid_list=$(echo $data_with_uid | tr ' ' '\n' | head -10 | tr '\n' ' ') # head를 이용해 상위 10개의 movieid를 리스트로 만든다
-        echo
+        echo ""
         items=$(cat $1 | tr ' ' '_' | tr '|' ' ') 
         for movieid in $movieid_list
         do
            echo -e "${items}"| awk -v movieid="$movieid" '$1==movieid{print $1,$2}' | tr ' ' '|' | tr '_' ' '
         done
+        echo ""
         ;;
     8)
+        echo ""
         read -p "Do you want to get the average 'rating' of movies rated by users with 'age' between 20 and 29 and 'occupation' as 'programmer'?(y/n)" select
         case $select in
         Y|y|yes|Yes|YES)
@@ -202,6 +228,7 @@ do
             num_of_movies=$(wc -l $1 | awk '{print $1}')
             ratings=$(cat $2|awk '{print $1, $2, $3}')
             # 조건에 맞는 user의 uid를 리스트로 가져온다. 또한 wc를 이용해 전체 영화의 갯수를 가져온다.
+            echo ""
             for movieid in $(seq 1 "${num_of_movies}")
             do
                 sum=0; count=0
@@ -219,6 +246,7 @@ do
                     echo "${movieid}" "${avg}"  # 구한 값을 출력
                 fi
             done
+            echo ""
             ;;
         N|n|no|No|NO)
             echo "back to the menu"
